@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen">
+<title>REP</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --black: #000000;
+    --white: #ffffff;
+    --red: #ff2020;
+    --green: #00ff88;
+    --dim: #333333;
+    --muted: #666666;
+    --text-dim: #999999;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--black);
+    color: var(--white);
+    font-family: 'Space Mono', monospace;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* ── SCREENS ── */
+  .screen {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 32px 24px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .screen.active { opacity: 1; pointer-events: all; }
+
+  /* ── SETUP SCREEN ── */
+  #setupScreen {
+    gap: 0;
+    justify-content: flex-start;
+    padding-top: 60px;
+  }
+
+  .app-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 96px;
+    letter-spacing: 12px;
+    line-height: 1;
+    color: var(--white);
+    margin-bottom: 4px;
+  }
+  .app-subtitle {
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--muted);
+    margin-bottom: 48px;
+    text-transform: uppercase;
+  }
+
+  .input-group {
+    width: 100%;
+    margin-bottom: 28px;
+  }
+  .input-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border: 1px solid var(--dim);
+  }
+  .stepper-btn {
+    width: 56px; height: 56px;
+    background: none;
+    border: none;
+    color: var(--white);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .stepper-btn:active { background: var(--dim); }
+  .stepper-val {
+    flex: 1;
+    text-align: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 40px;
+    letter-spacing: 2px;
+    border-left: 1px solid var(--dim);
+    border-right: 1px solid var(--dim);
+    padding: 8px 0;
+  }
+
+  /* settings toggle row */
+  .setting-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--dim);
+    margin-bottom: 4px;
+  }
+  .setting-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .toggle {
+    position: relative;
+    width: 44px; height: 24px;
+    cursor: pointer;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-track {
+    position: absolute; inset: 0;
+    background: var(--dim);
+    border-radius: 12px;
+    transition: background 0.2s;
+  }
+  .toggle input:checked + .toggle-track { background: var(--green); }
+  .toggle-thumb {
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 18px; height: 18px;
+    background: var(--white);
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+  .toggle input:checked ~ .toggle-thumb { transform: translateX(20px); }
+
+  /* notification preference */
+  .notif-options {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+  .notif-chip {
+    flex: 1;
+    min-width: calc(50% - 4px);
+    padding: 10px 8px;
+    border: 1px solid var(--dim);
+    background: none;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .notif-chip.selected {
+    border-color: var(--white);
+    color: var(--white);
+    background: rgba(255,255,255,0.05);
+  }
+
+  .start-btn {
+    width: 100%;
+    height: 64px;
+    background: var(--white);
+    color: var(--black);
+    border: none;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 6px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    margin-top: 8px;
+  }
+  .start-btn:active { opacity: 0.8; }
+
+  /* ── DETECT SCREEN ── */
+  #detectScreen { gap: 24px; }
+
+  #videoEl {
+    position: absolute;
+    width: 1px; height: 1px;
+    opacity: 0; pointer-events: none;
+  }
+
+  .detect-status {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    letter-spacing: 6px;
+    text-align: center;
+    transition: color 0.3s;
+  }
+  .detect-status.ready { color: var(--green); }
+
+  .detect-hint {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-align: center;
+    text-transform: uppercase;
+    line-height: 1.8;
+  }
+
+  .skeleton-wrap {
+    width: 80px; height: 160px;
+    position: relative;
+  }
+  #skeletonSvg { width: 100%; height: 100%; }
+
+  /* ── WORKOUT SCREEN ── */
+  #workoutScreen { justify-content: space-between; padding: 48px 24px; }
+
+  .set-indicator {
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--muted);
+    text-transform: uppercase;
+    align-self: flex-start;
+  }
+  .set-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+  }
+
+  .rep-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+  .rep-count {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 200px;
+    line-height: 0.85;
+    letter-spacing: -4px;
+    transition: color 0.1s;
+  }
+  .rep-count.flash { color: var(--green); }
+  .rep-target {
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .workout-bottom {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 1.5s infinite;
+  }
+  .status-dot.resting { background: var(--muted); box-shadow: none; animation: none; }
+  .status-dot.paused { background: var(--red); box-shadow: 0 0 8px var(--red); animation: none; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .status-label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  .pause-btn {
+    width: 52px; height: 52px;
+    border: 1px solid var(--dim);
+    background: none;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .pause-btn:active, .pause-btn.active { border-color: var(--red); color: var(--red); }
+
+  /* rest overlay */
+  .rest-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--dim);
+    overflow: hidden;
+  }
+  .rest-bar-fill {
+    height: 100%;
+    background: var(--green);
+    width: 0%;
+    transition: width 0.1s linear;
+  }
+
+  /* ── COMPLETE SCREEN ── */
+  #completeScreen { gap: 20px; }
+  .complete-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 80px;
+    letter-spacing: 8px;
+    line-height: 1;
+    text-align: center;
+  }
+  .complete-subtitle {
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--muted);
+    text-transform: uppercase;
+    text-align: center;
+  }
+  .complete-stats {
+    display: flex;
+    gap: 32px;
+    margin: 16px 0;
+  }
+  .stat-block { text-align: center; }
+  .stat-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    letter-spacing: 2px;
+    color: var(--green);
+  }
+  .stat-lbl {
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .done-btn {
+    width: 100%;
+    height: 56px;
+    background: none;
+    border: 1px solid var(--dim);
+    color: var(--muted);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 6px;
+    cursor: pointer;
+    margin-top: 16px;
+    transition: all 0.2s;
+  }
+  .done-btn:active { border-color: var(--white); color: var(--white); }
+
+  /* ── FLASH OVERLAY ── */
+  #flashOverlay {
+    position: fixed; inset: 0;
+    background: var(--green);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 100;
+    transition: opacity 0.05s;
+  }
+
+  /* set complete banner */
+  #setBanner {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: var(--green);
+    color: var(--black);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 6px;
+    text-align: center;
+    padding: 18px;
+    transform: translateY(-100%);
+    transition: transform 0.2s ease;
+    z-index: 99;
+  }
+  #setBanner.show { transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<video id="videoEl" playsinline muted autoplay></video>
+<div id="flashOverlay"></div>
+<div id="setBanner"></div>
+
+<!-- SETUP SCREEN -->
+<div class="screen active" id="setupScreen">
+  <div class="app-title">REP</div>
+  <div class="app-subtitle">Gym Rep Counter</div>
+
+  <div class="input-group">
+    <span class="input-label">Reps per set</span>
+    <div class="stepper">
+      <button class="stepper-btn" onclick="adjust('reps',-1)">−</button>
+      <div class="stepper-val" id="repsVal">12</div>
+      <button class="stepper-btn" onclick="adjust('reps',1)">+</button>
+    </div>
+  </div>
+
+  <div class="input-group">
+    <span class="input-label">Number of sets</span>
+    <div class="stepper">
+      <button class="stepper-btn" onclick="adjust('sets',-1)">−</button>
+      <div class="stepper-val" id="setsVal">3</div>
+      <button class="stepper-btn" onclick="adjust('sets',1)">+</button>
+    </div>
+  </div>
+
+  <div class="setting-row">
+    <span class="setting-label">Speak rep counts</span>
+    <label class="toggle">
+      <input type="checkbox" id="speakRepsToggle">
+      <div class="toggle-track"></div>
+      <div class="toggle-thumb"></div>
+    </label>
+  </div>
+
+  <div class="setting-row" style="margin-bottom:20px">
+    <span class="setting-label">Notifications</span>
+  </div>
+  <div class="notif-options" id="notifOptions">
+    <button class="notif-chip selected" data-val="voice">Voice</button>
+    <button class="notif-chip selected" data-val="vibrate">Vibrate</button>
+    <button class="notif-chip selected" data-val="chime">Chime</button>
+    <button class="notif-chip selected" data-val="flash">Flash</button>
+  </div>
+
+  <button class="start-btn" onclick="startSession()">START</button>
+</div>
+
+<!-- DETECT SCREEN -->
+<div class="screen" id="detectScreen">
+  <div class="skeleton-wrap">
+    <svg id="skeletonSvg" viewBox="0 0 80 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- body outline skeleton -->
+      <circle cx="40" cy="16" r="10" stroke="#333" stroke-width="2"/>
+      <line x1="40" y1="26" x2="40" y2="80" stroke="#333" stroke-width="2"/>
+      <line x1="40" y1="40" x2="15" y2="65" stroke="#333" stroke-width="2"/>
+      <line x1="40" y1="40" x2="65" y2="65" stroke="#333" stroke-width="2"/>
+      <line x1="40" y1="80" x2="25" y2="120" stroke="#333" stroke-width="2"/>
+      <line x1="40" y1="80" x2="55" y2="120" stroke="#333" stroke-width="2"/>
+      <line x1="25" y1="120" x2="20" y2="150" stroke="#333" stroke-width="2"/>
+      <line x1="55" y1="120" x2="60" y2="150" stroke="#333" stroke-width="2"/>
+      <!-- keypoint dots - will be colored by JS -->
+      <circle id="kp-nose" cx="40" cy="16" r="3" fill="#333"/>
+      <circle id="kp-lshoulder" cx="25" cy="36" r="3" fill="#333"/>
+      <circle id="kp-rshoulder" cx="55" cy="36" r="3" fill="#333"/>
+      <circle id="kp-lhip" cx="30" cy="80" r="4" fill="#333"/>
+      <circle id="kp-rhip" cx="50" cy="80" r="4" fill="#333"/>
+      <circle id="kp-lknee" cx="25" cy="112" r="3" fill="#333"/>
+      <circle id="kp-rknee" cx="55" cy="112" r="3" fill="#333"/>
+    </svg>
+  </div>
+  <div class="detect-status" id="detectStatus">GET IN POSITION</div>
+  <div class="detect-hint" id="detectHint">Stand back so your full body<br>is visible to the camera</div>
+  <button style="margin-top:32px;padding:14px 32px;background:none;border:1px solid #333;color:#666;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:3px;cursor:pointer;text-transform:uppercase;" onclick="goBack()">← BACK</button>
+</div>
+
+<!-- WORKOUT SCREEN -->
+<div class="screen" id="workoutScreen">
+  <div style="align-self:flex-start">
+    <div class="set-indicator">SET</div>
+    <div class="set-number" id="setDisplay">1 / 3</div>
+  </div>
+
+  <div class="rep-display">
+    <div class="rep-count" id="repCount">0</div>
+    <div class="rep-target" id="repTarget">OF 12 REPS</div>
+  </div>
+
+  <div class="workout-bottom">
+    <div>
+      <div class="status-dot" id="statusDot"></div>
+      <div class="status-label" id="statusLabel">ACTIVE</div>
+    </div>
+    <button class="pause-btn" id="pauseBtn" onclick="togglePause()">⏸</button>
+  </div>
+
+  <div class="rest-bar"><div class="rest-bar-fill" id="restBarFill"></div></div>
+</div>
+
+<!-- COMPLETE SCREEN -->
+<div class="screen" id="completeScreen">
+  <div class="complete-title">DONE</div>
+  <div class="complete-subtitle">Workout complete</div>
+  <div class="complete-stats">
+    <div class="stat-block">
+      <div class="stat-val" id="statSets">3</div>
+      <div class="stat-lbl">Sets</div>
+    </div>
+    <div class="stat-block">
+      <div class="stat-val" id="statReps">36</div>
+      <div class="stat-lbl">Total reps</div>
+    </div>
+  </div>
+  <button class="done-btn" onclick="resetApp()">NEW SESSION</button>
+</div>
+
+<!-- TensorFlow + MoveNet -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
+
+<script>
+// ── STATE ──
+const state = {
+  reps: 12, sets: 3,
+  speakReps: false,
+  notifs: new Set(['voice','vibrate','chime','flash']),
+  currentSet: 1,
+  currentRep: 0,
+  phase: 'setup', // setup | detect | workout | rest | complete
+  paused: false,
+  detector: null,
+  animFrame: null,
+  wakeLock: null,
+  // rep counting
+  hipBuffer: [],
+  BUFFER_SIZE: 8,
+  repState: 'top', // top | bottom
+  topThresh: null,
+  bottomThresh: null,
+  calFrames: [],
+  calibrated: false,
+  CAL_FRAMES: 30,
+  // rest detection
+  prevKeypoints: null,
+  restFrames: 0,
+  REST_THRESHOLD: 15, // frames of stillness = rest
+  MOVE_THRESHOLD: 8,  // frames of movement = active
+  moveFrames: 0,
+  isResting: false,
+  restStartTime: null,
+  // keypoint fallback
+  activeKeypoint: 'hip', // hip | wrist | knee
+};
+
+// ── AUDIO ──
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function playChime(freq = 880, type = 'sine', duration = 0.3) {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = freq;
+    osc.type = type;
+    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.start(); osc.stop(ctx.currentTime + duration);
+  } catch(e) {}
+}
+function playSetComplete() {
+  playChime(523, 'sine', 0.15);
+  setTimeout(() => playChime(659, 'sine', 0.15), 120);
+  setTimeout(() => playChime(784, 'sine', 0.3), 240);
+}
+function playSessionComplete() {
+  [523,659,784,1047].forEach((f,i) => setTimeout(() => playChime(f,'sine',0.4), i*130));
+}
+function playRepTick(n) {
+  playChime(330 + n * 10, 'sine', 0.08);
+}
+
+// ── SPEECH ──
+function speak(text) {
+  if (!('speechSynthesis' in window)) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 1.1; u.pitch = 1;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
+}
+
+// ── HAPTICS ──
+function vibrate(pattern) {
+  if (navigator.vibrate) navigator.vibrate(pattern);
+}
+
+// ── FLASH ──
+function flash(color = '#00ff88') {
+  const el = document.getElementById('flashOverlay');
+  el.style.background = color;
+  el.style.opacity = '0.6';
+  setTimeout(() => el.style.opacity = '0', 200);
+}
+
+// ── SETUP UI ──
+function adjust(key, delta) {
+  if (key === 'reps') {
+    state.reps = Math.max(1, state.reps + delta);
+    document.getElementById('repsVal').textContent = state.reps;
+  } else {
+    state.sets = Math.max(1, state.sets + delta);
+    document.getElementById('setsVal').textContent = state.sets;
+  }
+}
+
+document.getElementById('speakRepsToggle').addEventListener('change', e => {
+  state.speakReps = e.target.checked;
+});
+
+document.querySelectorAll('.notif-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const val = chip.dataset.val;
+    if (state.notifs.has(val)) { state.notifs.delete(val); chip.classList.remove('selected'); }
+    else { state.notifs.add(val); chip.classList.add('selected'); }
+  });
+});
+
+// ── NAVIGATION ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function goBack() {
+  stopDetection();
+  showScreen('setupScreen');
+}
+
+function resetApp() {
+  stopDetection();
+  state.currentSet = 1; state.currentRep = 0;
+  state.phase = 'setup';
+  state.paused = false;
+  state.hipBuffer = []; state.calFrames = [];
+  state.calibrated = false; state.repState = 'top';
+  state.topThresh = null; state.bottomThresh = null;
+  state.isResting = false; state.restFrames = 0; state.moveFrames = 0;
+  showScreen('setupScreen');
+}
+
+// ── WAKE LOCK ──
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      state.wakeLock = await navigator.wakeLock.request('screen');
+    }
+  } catch(e) {}
+}
+function releaseWakeLock() {
+  if (state.wakeLock) { state.wakeLock.release(); state.wakeLock = null; }
+}
+
+// ── START SESSION ──
+async function startSession() {
+  getAudioCtx(); // unlock audio on user gesture
+  state.currentSet = 1; state.currentRep = 0;
+  state.phase = 'detect';
+  state.paused = false;
+  state.calibrated = false;
+  state.hipBuffer = []; state.calFrames = [];
+  state.repState = 'top';
+  state.isResting = false;
+  state.restFrames = 0; state.moveFrames = 0;
+  updateWorkoutUI();
+  showScreen('detectScreen');
+  await requestWakeLock();
+  await initCamera();
+  await loadModel();
+  startDetection();
+}
+
+// ── CAMERA ──
+async function initCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 640 } },
+      audio: false
+    });
+    const video = document.getElementById('videoEl');
+    video.srcObject = stream;
+    await new Promise(res => video.onloadedmetadata = res);
+    await video.play();
+  } catch(e) {
+    document.getElementById('detectStatus').textContent = 'CAMERA ERROR';
+    document.getElementById('detectHint').textContent = 'Please allow camera access and reload';
+  }
+}
+
+// ── MODEL ──
+async function loadModel() {
+  if (state.detector) return;
+  try {
+    const model = poseDetection.SupportedModels.MoveNet;
+    const cfg = { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING };
+    state.detector = await poseDetection.createDetector(model, cfg);
+  } catch(e) {
+    document.getElementById('detectStatus').textContent = 'MODEL ERROR';
+  }
+}
+
+// ── DETECTION LOOP ──
+function startDetection() {
+  const video = document.getElementById('videoEl');
+  async function loop() {
+    if (!state.detector || state.paused) {
+      state.animFrame = requestAnimationFrame(loop);
+      return;
+    }
+    try {
+      const poses = await state.detector.estimatePoses(video);
+      if (poses && poses.length > 0) processPose(poses[0]);
+    } catch(e) {}
+    state.animFrame = requestAnimationFrame(loop);
+  }
+  state.animFrame = requestAnimationFrame(loop);
+}
+
+function stopDetection() {
+  if (state.animFrame) { cancelAnimationFrame(state.animFrame); state.animFrame = null; }
+  releaseWakeLock();
+  const video = document.getElementById('videoEl');
+  if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
+}
+
+// ── POSE PROCESSING ──
+function getKp(keypoints, name) {
+  return keypoints.find(k => k.name === name);
+}
+function kpY(kp) { return kp ? kp.y : null; }
+function kpConf(kp) { return kp ? (kp.score || 0) : 0; }
+
+function processPose(pose) {
+  const kps = pose.keypoints;
+  const lhip = getKp(kps, 'left_hip');
+  const rhip = getKp(kps, 'right_hip');
+  const lshoulder = getKp(kps, 'left_shoulder');
+  const rshoulder = getKp(kps, 'right_shoulder');
+  const lknee = getKp(kps, 'left_knee');
+  const rknee = getKp(kps, 'right_knee');
+  const lwrist = getKp(kps, 'left_wrist');
+  const rwrist = getKp(kps, 'right_wrist');
+
+  // update skeleton dots
+  updateSkeletonDot('kp-lshoulder', lshoulder);
+  updateSkeletonDot('kp-rshoulder', rshoulder);
+  updateSkeletonDot('kp-lhip', lhip);
+  updateSkeletonDot('kp-rhip', rhip);
+  updateSkeletonDot('kp-lknee', lknee);
+  updateSkeletonDot('kp-rknee', rknee);
+
+  const inFrame = kpConf(lhip) > 0.4 && kpConf(rhip) > 0.4 &&
+                  kpConf(lshoulder) > 0.4 && kpConf(rshoulder) > 0.4;
+
+  if (state.phase === 'detect') {
+    const statusEl = document.getElementById('detectStatus');
+    const hintEl = document.getElementById('detectHint');
+    if (inFrame) {
+      statusEl.textContent = 'READY';
+      statusEl.classList.add('ready');
+      hintEl.textContent = 'Hold position — starting…';
+      setTimeout(() => {
+        if (state.phase === 'detect') {
+          state.phase = 'workout';
+          showScreen('workoutScreen');
+        }
+      }, 1200);
+    } else {
+      statusEl.textContent = 'GET IN POSITION';
+      statusEl.classList.remove('ready');
+      hintEl.textContent = 'Stand back so your full body\nis visible to the camera';
+    }
+    return;
+  }
+
+  if (state.phase !== 'workout' && state.phase !== 'rest') return;
+
+  // ── KEYPOINT SELECTION (fallback logic) ──
+  // Determine which keypoints have most movement
+  let trackY = null;
+  const hipY = (lhip && rhip && kpConf(lhip) > 0.3 && kpConf(rhip) > 0.3)
+    ? (lhip.y + rhip.y) / 2 : null;
+  const kneeY = (lknee && rknee && kpConf(lknee) > 0.3 && kpConf(rknee) > 0.3)
+    ? (lknee.y + rknee.y) / 2 : null;
+  const wristY = (lwrist && rwrist && kpConf(lwrist) > 0.3 && kpConf(rwrist) > 0.3)
+    ? (lwrist.y + rwrist.y) / 2 : null;
+
+  // Use hip if available, fallback to knee, then wrist
+  if (hipY !== null) trackY = hipY;
+  else if (kneeY !== null) trackY = kneeY;
+  else if (wristY !== null) trackY = wristY;
+
+  if (trackY === null) return;
+
+  // ── REST DETECTION ──
+  detectRestResume(kps);
+
+  if (state.isResting) {
+    updateRestUI();
+    return;
+  }
+
+  // ── REP COUNTING ──
+  state.hipBuffer.push(trackY);
+  if (state.hipBuffer.length > state.BUFFER_SIZE) state.hipBuffer.shift();
+  const smoothY = state.hipBuffer.reduce((a,b) => a+b, 0) / state.hipBuffer.length;
+
+  // calibration: collect range of motion
+  if (!state.calibrated) {
+    state.calFrames.push(smoothY);
+    if (state.calFrames.length >= state.CAL_FRAMES) {
+      const minY = Math.min(...state.calFrames);
+      const maxY = Math.max(...state.calFrames);
+      const range = maxY - minY;
+      if (range > 15) { // enough motion to calibrate
+        state.topThresh = minY + range * 0.3;
+        state.bottomThresh = maxY - range * 0.3;
+        state.calibrated = true;
+      } else {
+        // reset and keep trying
+        state.calFrames = [];
+      }
+    }
+    return;
+  }
+
+  // count reps based on threshold crossings
+  if (state.repState === 'top' && smoothY > state.bottomThresh) {
+    state.repState = 'bottom';
+  } else if (state.repState === 'bottom' && smoothY < state.topThresh) {
+    state.repState = 'top';
+    registerRep();
+  }
+}
+
+function updateSkeletonDot(id, kp) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.setAttribute('fill', kp && kpConf(kp) > 0.4 ? '#00ff88' : '#333');
+}
+
+// ── REST / RESUME ──
+function detectRestResume(kps) {
+  if (!state.prevKeypoints) { state.prevKeypoints = kps; return; }
+
+  // calculate total keypoint velocity
+  let totalDelta = 0; let count = 0;
+  kps.forEach(kp => {
+    const prev = state.prevKeypoints.find(p => p.name === kp.name);
+    if (prev && kpConf(kp) > 0.2 && kpConf(prev) > 0.2) {
+      totalDelta += Math.abs(kp.y - prev.y) + Math.abs(kp.x - prev.x);
+      count++;
+    }
+  });
+  state.prevKeypoints = kps;
+  const avgDelta = count > 0 ? totalDelta / count : 0;
+
+  const STILL_THRESH = 2.5;
+  const MOVE_THRESH = 4.0;
+
+  if (!state.isResting) {
+    if (avgDelta < STILL_THRESH) {
+      state.restFrames++;
+      state.moveFrames = 0;
+      if (state.restFrames >= state.REST_THRESHOLD) {
+        // entered rest — only if we already counted at least some reps
+        // don't go to rest at start of set
+      }
+    } else {
+      state.restFrames = 0;
+    }
+  } else {
+    // in rest, watch for movement
+    if (avgDelta > MOVE_THRESH) {
+      state.moveFrames++;
+      state.restFrames = 0;
+      if (state.moveFrames >= state.MOVE_THRESHOLD) {
+        endRest();
+      }
+    } else {
+      state.moveFrames = 0;
+    }
+    // update rest bar
+    const elapsed = (Date.now() - state.restStartTime) / 1000;
+    const pct = Math.min(elapsed / 60 * 100, 100); // visual only, no timeout
+    document.getElementById('restBarFill').style.width = pct + '%';
+  }
+}
+
+function enterRest() {
+  state.isResting = true;
+  state.restFrames = 0;
+  state.moveFrames = 0;
+  state.restStartTime = Date.now();
+  state.phase = 'rest';
+  updateRestUI();
+}
+
+function endRest() {
+  state.isResting = false;
+  state.moveFrames = 0;
+  state.restFrames = 0;
+  state.phase = 'workout';
+  state.calibrated = false;
+  state.calFrames = [];
+  state.hipBuffer = [];
+  state.repState = 'top';
+  document.getElementById('restBarFill').style.width = '0%';
+  updateWorkoutUI();
+}
+
+function updateRestUI() {
+  const dot = document.getElementById('statusDot');
+  const lbl = document.getElementById('statusLabel');
+  dot.className = 'status-dot resting';
+  lbl.textContent = 'RESTING';
+}
+
+// ── REGISTER REP ──
+function registerRep() {
+  state.currentRep++;
+  updateRepDisplay();
+
+  if (state.speakReps && state.notifs.has('voice')) speak(String(state.currentRep));
+  if (state.notifs.has('chime')) playRepTick(state.currentRep);
+
+  // flash rep count briefly
+  const rc = document.getElementById('repCount');
+  rc.classList.add('flash');
+  setTimeout(() => rc.classList.remove('flash'), 150);
+
+  if (state.currentRep >= state.reps) {
+    completeSet();
+  }
+}
+
+function updateRepDisplay() {
+  document.getElementById('repCount').textContent = state.currentRep;
+  document.getElementById('repTarget').textContent = `OF ${state.reps} REPS`;
+  document.getElementById('setDisplay').textContent = `${state.currentSet} / ${state.sets}`;
+}
+
+function updateWorkoutUI() {
+  updateRepDisplay();
+  const dot = document.getElementById('statusDot');
+  const lbl = document.getElementById('statusLabel');
+  if (state.paused) {
+    dot.className = 'status-dot paused';
+    lbl.textContent = 'PAUSED';
+  } else {
+    dot.className = 'status-dot';
+    lbl.textContent = 'ACTIVE';
+  }
+}
+
+// ── SET COMPLETE ──
+function completeSet() {
+  const msg = state.currentSet < state.sets
+    ? `Set ${state.currentSet} complete`
+    : null;
+
+  // notifications
+  if (state.notifs.has('voice')) speak(msg || 'Workout complete');
+  if (state.notifs.has('vibrate')) vibrate([100, 50, 100, 50, 200]);
+  if (state.notifs.has('chime')) playSetComplete();
+  if (state.notifs.has('flash')) flash();
+
+  // banner
+  const banner = document.getElementById('setBanner');
+  banner.textContent = msg ? `SET ${state.currentSet} COMPLETE` : 'WORKOUT COMPLETE';
+  banner.classList.add('show');
+  setTimeout(() => banner.classList.remove('show'), 2500);
+
+  if (state.currentSet >= state.sets) {
+    setTimeout(completeSession, 1000);
+    return;
+  }
+
+  state.currentSet++;
+  state.currentRep = 0;
+  updateRepDisplay();
+  enterRest();
+}
+
+// ── SESSION COMPLETE ──
+function completeSession() {
+  stopDetection();
+  state.phase = 'complete';
+  document.getElementById('statSets').textContent = state.sets;
+  document.getElementById('statReps').textContent = state.sets * state.reps;
+  if (state.notifs.has('voice')) speak('Workout complete. Well done.');
+  if (state.notifs.has('vibrate')) vibrate([200, 100, 200, 100, 400]);
+  if (state.notifs.has('chime')) playSessionComplete();
+  showScreen('completeScreen');
+}
+
+// ── PAUSE ──
+function togglePause() {
+  state.paused = !state.paused;
+  const btn = document.getElementById('pauseBtn');
+  btn.classList.toggle('active', state.paused);
+  btn.textContent = state.paused ? '▶' : '⏸';
+  updateWorkoutUI();
+}
+</script>
+</body>
+</html>
